@@ -13,19 +13,14 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle. If not, see <http://www.gnu.org/licenses/>.
 
-/*
-document.addEventListener("DOMContentLoaded", function(event) {
-    M.mod_assignsubmission_voicerec.init();
-});
-*/
-
 M.mod_assignsubmission_voicerec={};
+
 /**
- * The JavaScript used in the 
+ * The JavaScript used in the Assignment submissions plugin Voicerec
  *
  * @author     
  * @author     
- * @package    
+ * @package    mod Assignment
  * @subpackage voicerec
  * @copyright  
  * @license    
@@ -50,15 +45,30 @@ M.mod_assignsubmission_voicerec.init = function(yui, maxduration) {
 	var voicerec_recording_audio = document.getElementById('voicerec_recording_audio');
 	var voicerec_upload = document.getElementById('voicerec_upload');
 	var rectime_timer = document.getElementById('rectime_timer');
+	var rec_level_meter = document.getElementById("rec_level_meter");
+	var rlmeter_context = rec_level_meter.getContext("2d");
+	var meter_width = rec_level_meter.width;
+	var meter_height = rec_level_meter.height;
+	var gradient = rlmeter_context.createLinearGradient(0,0,0,meter_height);
+	var audioBuffer;
+    gradient.addColorStop(1.0,'#0000ff');
+    gradient.addColorStop(0.0,'#8080ff');
+	var audioContext = new AudioContext();
+	var scriptNode = null;
+	var sourceNode = null;
+	var analyser = null;
+
 	/*
-	 * TODO:locallib.php中のget_form_elementsで$mform->addElementしたfomeのidが
-	 * mform1に書き換えられる？処理を追う必要がMoodleQuickFormの処理を追う必要があるが、
-	 * 正常処理を通す方を優先。	 
+	 * 
 	 */
 	var voice_send = document.getElementById('mform1');
 
 	/**
 	 * ユーザの録音許可
+	 * ユーザの許可を得る必要があるのは、Firefoxだけ。
+	 * Chromeでユーザの許可を得るためのダイアログが表示されなくなり、すぐに録音が開始されるようになっている。
+	 * 許可を得ると録音開始する。
+	 * 
 	 */
 	voicerec_rec.addEventListener('click', function () {
     	try{
@@ -67,6 +77,37 @@ M.mod_assignsubmission_voicerec.init = function(yui, maxduration) {
     			audio : true
     		}, function(stream) {
     			mediaStream = stream;
+    			sourceNode = audioContext.createMediaStreamSource(stream);
+    		    scriptNode = audioContext.createScriptProcessor(2048, 1, 1);
+    		    analyser = audioContext.createAnalyser();
+    		    analyser.smoothingTimeConstant = 0.3;
+    		    analyser.fftSize = 1024;
+    		    sourceNode.connect(analyser);
+    		    analyser.connect(scriptNode);
+    		    /*
+    		     * Chrome ではscriptNodeをdestinationにつながないとonaudioprocessが発生しない。
+    		     * FirefoxはsourceNode->analyser->scriptNodeで動作する。
+    		     */
+    		    scriptNode.connect(audioContext.destination);
+    		    scriptNode.onaudioprocess = function() {
+    		        var array =  new Uint8Array(analyser.frequencyBinCount);
+    		        analyser.getByteFrequencyData(array);
+    		        var max = getMaxVolume(array);
+    		        max = (max*meter_height)/255;
+    		        rlmeter_context.clearRect(0, 0, meter_width, meter_height);
+    		        rlmeter_context.fillStyle=gradient;
+    		        rlmeter_context.fillRect(0,meter_height - max,meter_width,max);
+    		        function getMaxVolume(array) {
+    		            var length = array.length;
+    		    		var max = 0; // 255
+    		            for (var i = 0; i < length; i++) {
+    		                if(max < array[i])max=array[i];
+    		            }
+    		            return max;
+    		        }
+    		    }
+    		    // ハウリングするので停止
+    		    //sourceNode.connect(audioContext.destination);
     			rec_start();
     		}, function(err) {
 				console.log(e);
@@ -120,9 +161,9 @@ M.mod_assignsubmission_voicerec.init = function(yui, maxduration) {
 			 * 
 			 */
 			mediaRecorder.ondataavailable = function(e) {
-				buffArray .push(e.data);
+				buffArray.push(e.data);
 				if('' != e.data.type){
-					dataType = e.data.type;　// Firefoxだけ指定している
+					dataType = e.data.type;　// Firefoxだけ指定してくる
 				}
 				//var extension = e.data.type.substr(e.data.type.indexOf('/') + 1); // "audio/ogg"->"ogg"
 				console.log("e.data.size = " + e.data.size);
@@ -137,7 +178,7 @@ M.mod_assignsubmission_voicerec.init = function(yui, maxduration) {
 			}
 			var timeslice = 1000; // The number of milliseconds of data to return in a single Blob.
 			mediaRecorder.start(timeslice);
-			limitTimerID = limit_timer(timeslice);
+			limitTimerID = limit_timer();
 			voicerec_rec.setAttribute('disabled','disabled');
 			voicerec_check.setAttribute('disabled','disabled');
 			voicerec_recording_audio.src='';
@@ -145,7 +186,7 @@ M.mod_assignsubmission_voicerec.init = function(yui, maxduration) {
 
 			/* */
 		}catch(e){
-			console.log(e);
+			console.log("exception :" + e);
 			clearTimeout(limitTimerID);
 			alert(M.str.assignsubmission_voicerec.changebrowser);
 		}
@@ -165,6 +206,7 @@ M.mod_assignsubmission_voicerec.init = function(yui, maxduration) {
 	stop_recording = function(){
 		clearTimeout(limitTimerID);
 		mediaRecorder.stop();
+		mediaStream.getAudioTracks()[0].stop();
 		voicerec_rec.removeAttribute('disabled');
 		voicerec_stop.setAttribute('disabled','disabled');
 		voicerec_check.removeAttribute('disabled');
@@ -225,7 +267,7 @@ M.mod_assignsubmission_voicerec.init = function(yui, maxduration) {
 			    //alert("ok");
 			    voice_send.submit();
 			} else {
-				alert("ng");
+				alert('system error');
 			}
         };
 		request.open("POST", "./submission/voicerec/upload.php");
@@ -238,7 +280,9 @@ M.mod_assignsubmission_voicerec.init = function(yui, maxduration) {
 		voicerec_recording_audio.src='';
 		voicerec_upload.setAttribute('disabled','disabled');
 	});
-	
+	/**
+	 * 録音制限時間タイマー
+     */
 	limit_timer = function(){
 		maxduration--;
 		rectime_timer.textContent = maxduration;

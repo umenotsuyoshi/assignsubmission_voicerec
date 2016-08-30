@@ -305,11 +305,14 @@ class assign_submission_voicerec extends assign_submission_plugin {
     	<li>$checkmikvolume</li>
     	<li>$startpermitbrowserrec</li>
     	</ol>
-    	<input type="button" id="voicerec_rec" value="$reclaber"/>
-	    <input type="button" id="voicerec_stop" value="$stoplaber"  disabled='disabled'/>
-    	<input type="button" id="voicerec_check" value="$checkrecording" disabled='disabled'/>
-    	<audio src="" id="voicerec_recording_audio" controls><p>$usemodernbrowser</p></audio>
-    	<input type="button" id="voicerec_upload" value="$submissionlabel" disabled='disabled'/>
+    	<div id="vrec_ctrl_btns">
+    		<canvas id="rec_level_meter" width="10" height="29"></canvas>
+    		<input type="button" id="voicerec_rec" value="$reclaber"/>
+		    <input type="button" id="voicerec_stop" value="$stoplaber"  disabled='disabled'/>
+    		<input type="button" id="voicerec_check" value="$checkrecording" disabled='disabled'/>
+    		<audio src="" id="voicerec_recording_audio" controls><p>$usemodernbrowser</p></audio>
+    		<input type="button" id="voicerec_upload" value="$submissionlabel" disabled='disabled'/>
+    	</div>
     	<div>
 	        <div id="rectimer_block"><span>$remainingtime</span><span id="rectime_timer">{$maxduration}</span><span>$remainingtimeunit</span></div>
     	</div>
