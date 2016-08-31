@@ -5,3 +5,6 @@
 
 ##2016.08.30
 ・録音中のピークメーターの表示実装
+
+##2016.08.31
+・ピークメーターの表示に廃止予定のScriptProcessorNodeを使用していたので描画をrequestAnimationFrameに変更

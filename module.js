@@ -51,10 +51,10 @@ M.mod_assignsubmission_voicerec.init = function(yui, maxduration) {
 	var meter_height = rec_level_meter.height;
 	var gradient = rlmeter_context.createLinearGradient(0,0,0,meter_height);
 	var audioBuffer;
-    gradient.addColorStop(1.0,'#0000ff');
-    gradient.addColorStop(0.0,'#8080ff');
+    gradient.addColorStop(0.99,'#00ff00');
+    gradient.addColorStop(0.02,'#0000ff');
+    gradient.addColorStop(0.01,'#ff0000');
 	var audioContext = new AudioContext();
-	var scriptNode = null;
 	var sourceNode = null;
 	var analyser = null;
 
@@ -78,18 +78,13 @@ M.mod_assignsubmission_voicerec.init = function(yui, maxduration) {
     		}, function(stream) {
     			mediaStream = stream;
     			sourceNode = audioContext.createMediaStreamSource(stream);
-    		    scriptNode = audioContext.createScriptProcessor(2048, 1, 1);
     		    analyser = audioContext.createAnalyser();
     		    analyser.smoothingTimeConstant = 0.3;
     		    analyser.fftSize = 1024;
     		    sourceNode.connect(analyser);
-    		    analyser.connect(scriptNode);
-    		    /*
-    		     * Chrome ではscriptNodeをdestinationにつながないとonaudioprocessが発生しない。
-    		     * FirefoxはsourceNode->analyser->scriptNodeで動作する。
-    		     */
-    		    scriptNode.connect(audioContext.destination);
-    		    scriptNode.onaudioprocess = function() {
+    		    analyser.connect(audioContext.destination);
+    		    requestID = requestAnimationFrame(dispPeakMeter);
+    		    function　dispPeakMeter() {
     		        var array =  new Uint8Array(analyser.frequencyBinCount);
     		        analyser.getByteFrequencyData(array);
     		        var max = getMaxVolume(array);
@@ -105,6 +100,8 @@ M.mod_assignsubmission_voicerec.init = function(yui, maxduration) {
     		            }
     		            return max;
     		        }
+        		    requestID = requestAnimationFrame(dispPeakMeter);
+
     		    }
     		    // ハウリングするので停止
     		    //sourceNode.connect(audioContext.destination);
