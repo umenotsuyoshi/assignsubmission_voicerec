@@ -144,8 +144,8 @@ class assign_submission_voicerec extends assign_submission_plugin {
         $name = get_string('maxduration', 'assignsubmission_voicerec');
         $mform->setType('assignsubmission_voicerec_maxduration', PARAM_INT);
         $mform->addElement('text', 'assignsubmission_voicerec_maxduration', $name, array('size' => '6'));
-        $mform->addRule('assignsubmission_voicerec_maxduration', $errordurationmsg, 'nonzero', null, 'client');  
-        $mform->addRule('assignsubmission_voicerec_maxduration', $errordurationmsg, 'required', null, 'client');
+        //$mform->addRule('assignsubmission_voicerec_maxduration', $errordurationmsg, 'nonzero', null, 'client');  
+        //$mform->addRule('assignsubmission_voicerec_maxduration', $errordurationmsg, 'required', null, 'client');
         //$mform->addRule('assignsubmission_voicerec_maxduration', $errordurationmsg, 'numeric', null, 'client');
         $checkdurationcallback = function($val){
         	$sitemaxduration = get_config('assignsubmission_voicerec', 'maxduration');
